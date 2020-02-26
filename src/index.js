@@ -4,18 +4,20 @@ import './index.css';
 
 function Square(props) {
     return (
-      <button className="square" onClick={props.onClick}>
+      <button className={`square ${props.isHighlight ? 'highlight' : ''}`} onClick={() => props.onClick()}>
         {props.value}
       </button>
     );
   }
 
 class Board extends React.Component {
-  renderSquare(i) {
+  renderSquare(i, isHighlight = false) {
     return (
       <Square
+        isHighlight={isHighlight}
         value={this.props.squares[i]}
-        onClick={() => this.props.onClick(i)} key={i}
+        onClick={() => this.props.onClick(i)}
+        key={i}
       />
     );
   }
@@ -30,7 +32,7 @@ class Board extends React.Component {
                 {
                   Array(3).fill(0).map((col, j) => {
                     return (
-                      this.renderSquare(i * 3 + j)
+                      this.renderSquare(i * 3 + j, this.props.highlightCells.indexOf(i * 3 + j) !== -1)
                     )
                   })
                 }
@@ -91,7 +93,14 @@ class Game extends React.Component {
   render() {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
-    const winner = calculateWinner(current.squares);
+    const settlement = calculateWinner(current.squares);
+
+    let status;
+    if (settlement) {
+      status = 'Winner: ' + settlement.winner;
+    } else {
+      status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+    }
 
     const moves = history.map((step, move) => {
       const desc = move ?
@@ -104,18 +113,14 @@ class Game extends React.Component {
       );
     });
 
-    let status;
-    if (winner) {
-      status = 'Winner: ' + winner;
-    } else {
-      status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
-    }
 
     return (
       <div className="game">
         <div className="game-board">
           <Board squares={current.squares}
-          onClick={(i) => this.handleClick(i)}/>
+          onClick={(i) => this.handleClick(i)}
+          highlightCells={settlement ? settlement.line : []}
+          />
         </div>
         <div className="game-info">
           <div>{status}</div>
@@ -148,7 +153,10 @@ function calculateWinner(squares) {
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return {
+        winner: squares[a],
+        line: [a, b, c]
+      };
     }
   }
   return null;
